@@ -13,6 +13,7 @@ export interface BloodRequest {
   contact_number?: string;
   accepted_count?: number;
   donated_count?: number;
+  my_response_status?: 'pending' | 'accepted' | 'rejected' | 'donated';
 }
 
 export interface Donation {

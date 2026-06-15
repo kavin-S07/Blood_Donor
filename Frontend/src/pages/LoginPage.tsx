@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     try {
       await login(email, password);
       const user = JSON.parse(localStorage.getItem('bc_user') || '{}');
-      const dest = from || (user.role === 'donor' ? '/donor' : '/hospital');
+      const dest = from || (user.role === 'donor' ? '/donor' : user.role === 'hospital' ? '/hospital' : '/admin');
       navigate(dest, { replace: true });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -120,9 +120,9 @@ const LoginPage: React.FC = () => {
             </div>
 
             <div className="text-right">
-              <Link to="/forgot-password" className="text-sm text-rose-600 hover:text-rose-700 font-medium">
-                Forgot password?
-              </Link>
+              <span className="text-xs text-slate-400">
+                Forgot your password? Ask an administrator to reset it.
+              </span>
             </div>
 
             <button

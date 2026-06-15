@@ -28,7 +28,8 @@ const ProtectedRoute: React.FC<Props> = ({ children, role }) => {
   }
 
   if (role && user?.role !== role) {
-    return <Navigate to={user?.role === 'donor' ? '/donor' : '/hospital'} replace />;
+    const home = user?.role === 'donor' ? '/donor' : user?.role === 'hospital' ? '/hospital' : '/admin';
+    return <Navigate to={home} replace />;
   }
 
   return <>{children}</>;

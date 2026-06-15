@@ -1,4 +1,4 @@
-export type Role = 'donor' | 'hospital';
+export type Role = 'donor' | 'hospital' | 'admin';
 
 export interface User {
   id: number;

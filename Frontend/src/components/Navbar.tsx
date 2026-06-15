@@ -112,7 +112,7 @@ const Navbar: React.FC = () => {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const dashLink = user?.role === 'donor' ? '/donor' : '/hospital';
+  const dashLink = user?.role === 'donor' ? '/donor' : user?.role === 'hospital' ? '/hospital' : '/admin';
   const isActive = (path: string) => location.pathname === path;
 
   const initials = user?.name
@@ -151,6 +151,15 @@ const Navbar: React.FC = () => {
               <>
                 <SideNavItem to="/hospital/blood-request" icon={Icon.newRequest} label="New Request" active={isActive('/hospital/blood-request')} />
                 <SideNavItem to="/hospital/history" icon={Icon.history} label="History" active={isActive('/hospital/history')} />
+              </>
+            )}
+
+            {user?.role === 'admin' && (
+              <>
+                <SideNavItem to="/admin/hospitals" icon={Icon.requests} label="Hospital Approvals" active={location.pathname.startsWith('/admin/hospitals')} />
+                <SideNavItem to="/admin/users" icon={Icon.profile} label="Users" active={isActive('/admin/users')} />
+                <SideNavItem to="/admin/requests" icon={Icon.newRequest} label="Blood Requests" active={isActive('/admin/requests')} />
+                <SideNavItem to="/admin/donations" icon={Icon.history} label="Donations" active={isActive('/admin/donations')} />
               </>
             )}
 

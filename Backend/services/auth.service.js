@@ -1,25 +1,37 @@
-const bcrypt       = require('bcryptjs');
-const jwt          = require('jsonwebtoken');
-const userRepo     = require('../repositories/user.repository');
-const donorRepo    = require('../repositories/donor.repository');
+// services/auth.service.js
+
+const bcrypt      = require('bcryptjs');
+const jwt         = require('jsonwebtoken');
+const userRepo    = require('../repositories/user.repository');
+const donorRepo   = require('../repositories/donor.repository');
 const hospitalRepo = require('../repositories/hospital.repository');
+
+// FIX: pendingHospitalRepo was used in login() but never imported
+const pendingHospitalRepo = require('../repositories/pendingHospital.repository');
+
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateTokens');
-const jwtConfig    = require('../config/jwt');
-const otpStore     = require('../utils/otpStore');
+const jwtConfig = require('../config/jwt');
 
 // ── Signup ────────────────────────────────────────────────────
 
 /**
- * Creates the account directly — no email/OTP verification step.
+ * Donors are created immediately.
+ * Hospitals are placed in pending_hospitals for admin review — NOT in users table yet.
  */
 const signup = async (data) => {
-    const existing = await userRepo.findByEmail(data.email);
-    if (existing) throw new Error('Email already registered');
+    // Check users table
+    const existingUser = await userRepo.findByEmail(data.email);
+    if (existingUser) throw new Error('Email already registered');
 
-    const hashed = await bcrypt.hash(data.password, 12);
-    const user   = await userRepo.create({ ...data, password: hashed });
+    // Also check pending_hospitals to prevent duplicate registrations
+    const existingPending = await pendingHospitalRepo.findByEmail(data.email);
+    if (existingPending) throw new Error('Email already registered');
 
-    if (user.role === 'donor') {
+    if (data.role === 'donor') {
+        // Donors: create account immediately
+        const hashed = await bcrypt.hash(data.password, 12);
+        const user   = await userRepo.create({ ...data, password: hashed });
+
         await donorRepo.create({
             user_id:            user.id,
             blood_group:        data.blood_group,
@@ -29,25 +41,59 @@ const signup = async (data) => {
             last_donation_date: data.last_donation_date || null,
             total_donations:    0,
         });
-    } else {
-        await hospitalRepo.create({
-            user_id:          user.id,
-            hospital_name:    data.hospital_name,
-            license_number:   data.license_number,
-            hospital_address: data.hospital_address,
-            contact_number:   data.contact_number,
-        });
-    }
 
-    const { password: _, otp: __, ...safeUser } = user;
-    return safeUser;
+        const { password: _, ...safeUser } = user;
+        return { user: safeUser, requiresApproval: false };
+
+    } else if (data.role === 'hospital') {
+        // Hospitals: store in pending_hospitals for admin approval
+        const hashed = await bcrypt.hash(data.password, 12);
+
+        await pendingHospitalRepo.create({
+            hospital_name:  data.hospital_name  || data.name,
+            email:          data.email,
+            password_hash:  hashed,
+            license_number: data.license_number,
+            address:        data.hospital_address,
+            phone:          data.contact_number  || data.phone,
+        });
+
+        return {
+            requiresApproval: true,
+            message: 'Hospital registration submitted. Awaiting admin approval.',
+        };
+
+    } else {
+        throw new Error('Invalid role');
+    }
 };
 
-// ── Auth ──────────────────────────────────────────────────────
+// ── Login ─────────────────────────────────────────────────────
 
 const login = async (email, password) => {
+
+    // FIX: Check pending_hospitals BEFORE checking the users table so we can
+    //      return the correct error message for hospitals awaiting/rejected approval.
+    const pendingHospital = await pendingHospitalRepo.findByEmail(email);
+
+    if (pendingHospital && pendingHospital.status === 'pending') {
+        throw new Error('Hospital registration is pending admin approval');
+    }
+
+    if (pendingHospital && pendingHospital.status === 'rejected') {
+        const reason = pendingHospital.rejection_reason
+            ? ` Reason: ${pendingHospital.rejection_reason}`
+            : '';
+        throw new Error(`Hospital registration was rejected.${reason}`);
+    }
+
     const user = await userRepo.findByEmail(email);
     if (!user) throw new Error('Invalid email or password');
+
+    // Block inactive accounts
+    if (user.is_active === false) {
+        throw new Error('Your account has been deactivated. Please contact support.');
+    }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new Error('Invalid email or password');
@@ -58,6 +104,8 @@ const login = async (email, password) => {
     const { password: _, ...safeUser } = user;
     return { accessToken, refreshToken, user: safeUser };
 };
+
+// ── Refresh token ─────────────────────────────────────────────
 
 const refreshAccessToken = async (token) => {
     if (!token) throw new Error('Refresh token required');
@@ -75,38 +123,7 @@ const refreshAccessToken = async (token) => {
     return { accessToken: generateAccessToken(user) };
 };
 
-// ── Password Reset OTP ────────────────────────────────────────
-
-const forgotPassword = async (email) => {
-    const user = await userRepo.findByEmail(email);
-    if (!user) throw new Error('No account found with that email');
-
-    const otp = otpStore.generate();
-    otpStore.set('reset', email, otp);
-
-    // Email sending removed (no provider configured).
-    // OTP is logged here so it can still be retrieved for testing.
-    console.log(`[Password Reset OTP] ${email} -> ${otp}`);
-
-    return user;
-};
-
-const verifyOtp = (namespace, email, otp) => {
-    const valid = otpStore.verify(namespace, email, otp);
-    if (!valid) throw new Error('Invalid or expired OTP');
-};
-
-const resetPassword = async (email, otp, newPassword) => {
-    const valid = otpStore.verify('reset', email, otp);
-    if (!valid) throw new Error('Invalid or expired OTP');
-
-    const user = await userRepo.findByEmail(email);
-    if (!user) throw new Error('User not found');
-
-    const hashed = await bcrypt.hash(newPassword, 12);
-    await userRepo.updatePassword(user.id, hashed);
-    otpStore.consume('reset', email);
-};
+// ── Change Password ───────────────────────────────────────────
 
 const changePassword = async (userId, currentPassword, newPassword) => {
     const user  = await userRepo.findById(userId);
@@ -119,6 +136,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
 
 module.exports = {
     signup,
-    login, refreshAccessToken,
-    forgotPassword, verifyOtp, resetPassword, changePassword,
+    login,
+    refreshAccessToken,
+    changePassword,
 };

@@ -7,7 +7,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
-const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const DonorDashboardPage = lazy(() => import('./pages/DonorDashboardPage'));
 const HospitalDashboardPage = lazy(() => import('./pages/HospitalDashboardPage'));
@@ -16,6 +15,11 @@ const CreateBloodRequestPage = lazy(() => import('./pages/CreateBloodRequestPage
 const RequestDetailPage = lazy(() => import('./pages/RequestDetailPage'));
 const NotificationPage = lazy(() => import('./pages/NotificationPage'));
 const DonationHistoryPage = lazy(() => import('./pages/DonationHistoryPage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
+const AdminUserManagementPage = lazy(() => import('./pages/AdminUserManagementPage'));
+const AdminBloodRequestsPage = lazy(() => import('./pages/AdminBloodRequestsPage'));
+const AdminDonationsPage = lazy(() => import('./pages/AdminDonationsPage'));
+const HospitalApprovalsPage = lazy(() => import('./pages/HospitalApprovalsPage'));
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-[#0d0303]">
@@ -32,7 +36,6 @@ const App: React.FC = () => (
           <Route path="/" element={<Layout><HomePage /></Layout>} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected - both roles */}
           <Route path="/profile" element={
@@ -65,6 +68,26 @@ const App: React.FC = () => (
           } />
           <Route path="/hospital/history" element={
             <ProtectedRoute role="hospital"><Layout><DonationHistoryPage /></Layout></ProtectedRoute>
+          } />
+
+          {/* Admin routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute role="admin"><Layout><AdminDashboardPage /></Layout></ProtectedRoute>
+          } />
+          <Route path="/admin/hospitals" element={
+            <ProtectedRoute role="admin"><Layout><HospitalApprovalsPage /></Layout></ProtectedRoute>
+          } />
+          <Route path="/admin/hospitals/:tab" element={
+            <ProtectedRoute role="admin"><Layout><HospitalApprovalsPage /></Layout></ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedRoute role="admin"><Layout><AdminUserManagementPage /></Layout></ProtectedRoute>
+          } />
+          <Route path="/admin/requests" element={
+            <ProtectedRoute role="admin"><Layout><AdminBloodRequestsPage /></Layout></ProtectedRoute>
+          } />
+          <Route path="/admin/donations" element={
+            <ProtectedRoute role="admin"><Layout><AdminDonationsPage /></Layout></ProtectedRoute>
           } />
 
           <Route path="*" element={<Navigate to="/" replace />} />

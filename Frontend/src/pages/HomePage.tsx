@@ -47,7 +47,7 @@ const HomePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               {isAuthenticated ? (
                 <Link
-                  to={user?.role === 'donor' ? '/donor' : '/hospital'}
+                  to={user?.role === 'donor' ? '/donor' : user?.role === 'hospital' ? '/hospital' : '/admin'}
                   className="inline-flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-rose-200 hover:shadow-rose-300 text-sm"
                 >
                   Go to Dashboard
