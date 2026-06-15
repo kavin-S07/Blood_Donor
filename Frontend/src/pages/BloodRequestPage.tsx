@@ -137,21 +137,33 @@ const BloodRequestPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2 sm:flex-col min-w-[100px]">
-                    <button
-                      onClick={() => handleAccept(req.id)}
-                      disabled={acting === req.id}
-                      className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
-                    >
-                      {acting === req.id ? '…' : 'Accept'}
-                    </button>
-                    <button
-                      onClick={() => handleReject(req.id)}
-                      disabled={acting === req.id}
-                      className="flex-1 sm:flex-none border border-slate-200 hover:border-slate-300 text-slate-500 hover:text-slate-700 text-sm px-5 py-2.5 rounded-xl transition-colors"
-                    >
-                      Skip
-                    </button>
+                  <div className="flex gap-2 sm:flex-col min-w-[110px]">
+                    {req.my_response_status === 'accepted' ? (
+                      <div className="flex-1 sm:flex-none bg-green-50 border border-green-200 text-green-700 text-sm font-semibold px-5 py-2.5 rounded-xl text-center">
+                        Accepted ✓
+                      </div>
+                    ) : req.my_response_status === 'donated' ? (
+                      <div className="flex-1 sm:flex-none bg-blue-50 border border-blue-200 text-blue-700 text-sm font-semibold px-5 py-2.5 rounded-xl text-center">
+                        Donated ✓
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleAccept(req.id)}
+                        disabled={acting === req.id}
+                        className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md"
+                      >
+                        {acting === req.id ? '…' : 'Accept'}
+                      </button>
+                    )}
+                    {!req.my_response_status && (
+                      <button
+                        onClick={() => handleReject(req.id)}
+                        disabled={acting === req.id}
+                        className="flex-1 sm:flex-none border border-slate-200 hover:border-slate-300 text-slate-500 hover:text-slate-700 text-sm px-5 py-2.5 rounded-xl transition-colors"
+                      >
+                        Skip
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

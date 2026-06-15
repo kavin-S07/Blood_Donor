@@ -51,6 +51,7 @@ const forgotPasswordValidator = [
 
 const resetPasswordValidator = [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('otp').notEmpty().withMessage('OTP is required'),
     body('new_password')
         .isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
 ];

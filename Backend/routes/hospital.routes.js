@@ -8,13 +8,15 @@ const { createRequestValidator, updateRequestValidator } = require('../validator
 
 router.use(auth, role('hospital'));
 
-router.post('/request',                     createRequestValidator, validate, ctrl.createRequest);
-router.get('/requests',                     ctrl.getRequests);
-router.get('/request/:id',                  ctrl.getRequestById);
-router.put('/request/:id',                  updateRequestValidator, validate, ctrl.updateRequest);
-router.delete('/request/:id',               ctrl.deleteRequest);
-router.get('/request/:id/accepted-donors',  ctrl.getAcceptedDonors);
-router.get('/history',                      ctrl.getDonationHistory);
-router.get('/dashboard',                    ctrl.getDashboard);
+router.post('/request',                                     createRequestValidator, validate, ctrl.createRequest);
+router.get('/requests',                                     ctrl.getRequests);
+router.get('/request/:id',                                  ctrl.getRequestById);
+router.put('/request/:id',                                  updateRequestValidator, validate, ctrl.updateRequest);
+router.delete('/request/:id',                               ctrl.deleteRequest);
+router.get('/request/:id/accepted-donors',                  ctrl.getAcceptedDonors);
+router.post('/request/:id/response/:responseId/donated',    ctrl.markDonated);
+router.post('/request/:id/response/:responseId/reject',     ctrl.rejectDonor);
+router.get('/history',                                      ctrl.getDonationHistory);
+router.get('/dashboard',                                    ctrl.getDashboard);
 
 module.exports = router;

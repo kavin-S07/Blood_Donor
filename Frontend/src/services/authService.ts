@@ -17,8 +17,13 @@ export const authService = {
     return data;
   },
 
-  resetPassword: async (email: string, new_password: string) => {
-    const { data } = await api.post('/auth/reset-password', { email, new_password });
+  verifyOtp: async (email: string, otp: string, namespace = 'reset') => {
+    const { data } = await api.post('/auth/verify-otp', { email, otp, namespace });
+    return data;
+  },
+
+  resetPassword: async (email: string, otp: string, new_password: string) => {
+    const { data } = await api.post('/auth/reset-password', { email, otp, new_password });
     return data;
   },
 };

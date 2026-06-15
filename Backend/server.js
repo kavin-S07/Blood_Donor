@@ -2,11 +2,13 @@ require('dotenv').config();
 const http = require('http');
 const app  = require('./app');
 const db   = require('./config/db');
+const { runMigrations } = require('./database/migrate');
 
 const PORT   = process.env.PORT || 5000;
 const server = http.createServer(app);
 
 db.query('SELECT 1')
+    .then(() => runMigrations())
     .then(() => {
         server.listen(PORT, () => {
             console.log(`\n🩸 BloodConnect API`);
@@ -16,6 +18,6 @@ db.query('SELECT 1')
         });
     })
     .catch((err) => {
-        console.error('❌ Database connection failed:', err.message);
+        console.error('❌ Startup failed:', err.message);
         process.exit(1);
     });

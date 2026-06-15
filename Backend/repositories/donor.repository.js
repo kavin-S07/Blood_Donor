@@ -30,13 +30,16 @@ const findById = async (id) => {
     return rows[0] || null;
 };
 
-// Find available donors whose blood group is compatible with the requested group
+// Find eligible donors whose blood group is compatible
 const findCompatibleDonors = async (compatibleGroups) => {
     const placeholders = compatibleGroups.map((_, i) => `$${i + 1}`).join(', ');
     const { rows } = await db.query(
         `SELECT d.*, u.name, u.email, u.phone, u.city, u.state
          FROM donors d JOIN users u ON d.user_id = u.id
-         WHERE d.availability = true AND d.blood_group IN (${placeholders})`,
+         WHERE d.availability = true
+           AND COALESCE(d.eligible_for_donation, true) = true
+           AND (d.next_eligible_date IS NULL OR d.next_eligible_date <= CURRENT_TIMESTAMP)
+           AND d.blood_group IN (${placeholders})`,
         compatibleGroups
     );
     return rows;
@@ -70,8 +73,25 @@ const incrementDonations = async (donorId, donationDate) => {
     );
 };
 
+/**
+ * After a completed donation, mark donor ineligible for 90 days (male) or 120 days (female)
+ */
+const markIneligible = async (donorId, donatedAt, gender) => {
+    const waitDays = gender?.toLowerCase() === 'female' ? 120 : 90;
+    const { rows } = await db.query(
+        `UPDATE donors
+         SET eligible_for_donation = false,
+             last_donated_at       = $1,
+             next_eligible_date    = $1 + INTERVAL '1 day' * $2,
+             updated_at            = NOW()
+         WHERE id = $3 RETURNING *`,
+        [donatedAt, waitDays, donorId]
+    );
+    return rows[0];
+};
+
 module.exports = {
     create, findByUserId, findById,
     findCompatibleDonors, updateAvailability,
-    update, incrementDonations,
+    update, incrementDonations, markIneligible,
 };

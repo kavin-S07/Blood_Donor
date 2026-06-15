@@ -42,6 +42,14 @@ export const hospitalService = {
     const { data } = await api.get(`/hospital/request/${id}/accepted-donors`);
     return data.data;
   },
+  markDonated: async (requestId: number, responseId: number) => {
+    const { data } = await api.post(`/hospital/request/${requestId}/response/${responseId}/donated`);
+    return data;
+  },
+  rejectDonor: async (requestId: number, responseId: number, reason: string) => {
+    const { data } = await api.post(`/hospital/request/${requestId}/response/${responseId}/reject`, { reason });
+    return data;
+  },
   getDonationHistory: async () => {
     const { data } = await api.get('/hospital/history');
     return data.data;

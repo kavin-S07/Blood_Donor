@@ -1,17 +1,19 @@
-const authService  = require('../services/auth.service');
-const res_         = require('../utils/responseHandler');
+const authService = require('../services/auth.service');
+const res_        = require('../utils/responseHandler');
+
+// ── Signup ────────────────────────────────────────────────────
 
 const signup = async (req, res, next) => {
     try {
         const user = await authService.signup(req.body);
         return res_.created(res, user, 'Account created successfully');
     } catch (err) {
-        if (err.message === 'Email already registered') {
-            return res_.error(res, err.message, 409);
-        }
+        if (err.message === 'Email already registered') return res_.error(res, err.message, 409);
         next(err);
     }
 };
+
+// ── Auth ──────────────────────────────────────────────────────
 
 const login = async (req, res, next) => {
     try {
@@ -19,9 +21,7 @@ const login = async (req, res, next) => {
         const result = await authService.login(email, password);
         return res_.success(res, result, 'Login successful');
     } catch (err) {
-        if (err.message === 'Invalid email or password') {
-            return res_.error(res, err.message, 401);
-        }
+        if (err.message === 'Invalid email or password') return res_.error(res, err.message, 401);
         next(err);
     }
 };
@@ -36,21 +36,35 @@ const refreshToken = async (req, res, next) => {
     }
 };
 
+// ── Password Reset flow ───────────────────────────────────────
+
+// Step 1 – send OTP
 const forgotPassword = async (req, res, next) => {
     try {
         const { email } = req.body;
         await authService.forgotPassword(email);
-        // Always return success to prevent email enumeration
-        return res_.success(res, {}, 'If that email exists, you can now reset your password');
-    } catch (err) {
-        return res_.success(res, {}, 'If that email exists, you can now reset your password');
+        return res_.success(res, {}, 'OTP sent to your email address');
+    } catch {
+        return res_.success(res, {}, 'If that email exists, an OTP has been sent');
     }
 };
 
+// Step 2 – verify OTP (standalone check, used by frontend before showing reset form)
+const verifyOtp = async (req, res, next) => {
+    try {
+        const { namespace = 'reset', email, otp } = req.body;
+        authService.verifyOtp(namespace, email, otp);
+        return res_.success(res, {}, 'OTP verified');
+    } catch (err) {
+        return res_.error(res, err.message, 400);
+    }
+};
+
+// Step 3 – reset password (OTP re-validated here too)
 const resetPassword = async (req, res, next) => {
     try {
-        const { email, new_password } = req.body;
-        await authService.resetPassword(email, new_password);
+        const { email, otp, new_password } = req.body;
+        await authService.resetPassword(email, otp, new_password);
         return res_.success(res, {}, 'Password reset successfully');
     } catch (err) {
         return res_.error(res, err.message, 400);
@@ -58,6 +72,7 @@ const resetPassword = async (req, res, next) => {
 };
 
 module.exports = {
-    signup, login, refreshToken,
-    forgotPassword, resetPassword,
+    signup,
+    login, refreshToken,
+    forgotPassword, verifyOtp, resetPassword,
 };

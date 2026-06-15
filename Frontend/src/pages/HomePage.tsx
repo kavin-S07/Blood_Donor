@@ -143,9 +143,9 @@ const HomePage: React.FC = () => {
               accent: false,
             },
             {
-              icon: '📧',
-              title: 'OTP Verification',
-              desc: 'Email-based OTP for signup and password reset — no phone number required.',
+              icon: '📋',
+              title: 'Role-Based Access',
+              desc: 'Separate donor and hospital dashboards with permissions tailored to each role.',
               accent: false,
             },
             {

@@ -26,7 +26,8 @@ const findById = async (id) => {
 const findByHospitalId = async (hospitalId) => {
     const { rows } = await db.query(
         `SELECT br.*,
-                COUNT(rr.id) FILTER (WHERE rr.status = 'accepted') AS accepted_count
+                COUNT(rr.id) FILTER (WHERE rr.status = 'accepted') AS accepted_count,
+                COUNT(rr.id) FILTER (WHERE rr.status = 'donated')  AS donated_count
          FROM blood_requests br
          LEFT JOIN request_responses rr ON br.id = rr.request_id
          WHERE br.hospital_id = $1
@@ -46,7 +47,7 @@ const findForDonor = async (donorId, compatibleGroups) => {
          FROM blood_requests br
          JOIN hospitals h ON br.hospital_id = h.id
          LEFT JOIN request_responses rr ON br.id = rr.request_id AND rr.donor_id = $1
-         WHERE br.status = 'pending' AND br.blood_group IN (${placeholders})
+         WHERE br.status IN ('pending','accepted') AND br.blood_group IN (${placeholders})
          ORDER BY
            CASE br.emergency_level
              WHEN 'critical' THEN 1 WHEN 'high' THEN 2
@@ -80,22 +81,63 @@ const deleteById = async (id) => {
     await db.query('DELETE FROM blood_requests WHERE id = $1', [id]);
 };
 
-// Get accepted donors for a specific request
+// Get accepted donors for a specific request with their acceptance status
 const getAcceptedDonors = async (requestId) => {
     const { rows } = await db.query(
         `SELECT u.name, u.email, u.phone, u.city, u.state,
-                d.blood_group, rr.response_date
+                d.blood_group, d.gender, d.id as donor_id,
+                rr.id as response_id, rr.response_date, rr.status as acceptance_status,
+                rr.rejection_reason, rr.donated_at
          FROM request_responses rr
          JOIN donors d ON rr.donor_id = d.id
          JOIN users u ON d.user_id = u.id
-         WHERE rr.request_id = $1 AND rr.status = 'accepted'`,
+         WHERE rr.request_id = $1 AND rr.status IN ('accepted','donated','rejected')
+         ORDER BY rr.response_date DESC`,
         [requestId]
     );
     return rows;
+};
+
+// Mark a specific donor response as donated
+const markResponseDonated = async (responseId) => {
+    const { rows } = await db.query(
+        `UPDATE request_responses SET status = 'donated', donated_at = NOW()
+         WHERE id = $1 RETURNING *`,
+        [responseId]
+    );
+    return rows[0];
+};
+
+// Mark a specific donor response as rejected with reason
+const markResponseRejected = async (responseId, reason) => {
+    const { rows } = await db.query(
+        `UPDATE request_responses SET status = 'rejected', rejection_reason = $1
+         WHERE id = $2 RETURNING *`,
+        [reason, responseId]
+    );
+    return rows[0];
+};
+
+// Increment units received and auto-set status
+const incrementUnitsReceived = async (requestId, units) => {
+    const { rows } = await db.query(
+        `UPDATE blood_requests
+         SET units_received = COALESCE(units_received, 0) + $1,
+             status = CASE
+               WHEN COALESCE(units_received, 0) + $1 >= units_needed THEN 'completed'
+               ELSE 'partially_completed'
+             END,
+             updated_at = NOW()
+         WHERE id = $2 RETURNING *`,
+        [units, requestId]
+    );
+    return rows[0];
 };
 
 module.exports = {
     create, findById, findByHospitalId,
     findForDonor, updateStatus, update,
     deleteById, getAcceptedDonors,
+    markResponseDonated, markResponseRejected,
+    incrementUnitsReceived,
 };

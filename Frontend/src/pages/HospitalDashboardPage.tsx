@@ -12,10 +12,11 @@ const urgencyConfig: Record<string, { cls: string; dot: string }> = {
 };
 
 const statusConfig: Record<string, string> = {
-  pending:   'text-amber-600 bg-amber-50',
-  accepted:  'text-green-600 bg-green-50',
-  completed: 'text-blue-600 bg-blue-50',
-  cancelled: 'text-slate-400 bg-slate-50',
+  pending:             'text-amber-600 bg-amber-50',
+  accepted:            'text-blue-600 bg-blue-50',
+  completed:           'text-green-600 bg-green-50',
+  partially_completed: 'text-orange-600 bg-orange-50',
+  cancelled:           'text-slate-400 bg-slate-50',
 };
 
 const StatCard: React.FC<{ label: string; value: number; accent?: boolean; icon: string }> = ({ label, value, accent, icon }) => (
@@ -75,15 +76,23 @@ const HospitalDashboardPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900">Hospital Dashboard</h1>
           <p className="text-slate-500 text-sm mt-1">{user?.name}</p>
         </div>
-        <Link
-          to="/hospital/blood-request"
-          className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-rose-200"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Blood Request
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/hospital/history"
+            className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition-all"
+          >
+            📋 Donation Records
+          </Link>
+          <Link
+            to="/hospital/blood-request"
+            className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-rose-200"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Blood Request
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
@@ -91,7 +100,7 @@ const HospitalDashboardPage: React.FC = () => {
         <StatCard label="Total Requests" value={dashboard?.total_requests ?? 0} accent icon="📋" />
         <StatCard label="Active" value={dashboard?.active_requests ?? 0} icon="🔴" />
         <StatCard label="Completed" value={dashboard?.completed_requests ?? 0} icon="✅" />
-        <StatCard label="Donors Notified" value={dashboard?.total_donors_notified ?? 0} icon="🔔" />
+        <StatCard label="Total Donations" value={dashboard?.total_donations ?? 0} icon="🩸" />
       </div>
 
       {/* Requests Table */}
@@ -129,7 +138,7 @@ const HospitalDashboardPage: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {requests.map((r) => {
-                  const urg = urgencyConfig[r.emergency_level] || urgencyConfig.low;
+                  const urg  = urgencyConfig[r.emergency_level] || urgencyConfig.low;
                   const stat = statusConfig[r.status] || 'text-slate-500 bg-slate-50';
                   return (
                     <tr key={r.id} className="hover:bg-slate-50 transition-colors">
@@ -137,7 +146,11 @@ const HospitalDashboardPage: React.FC = () => {
                         <span className="text-rose-600 font-bold text-base">{r.blood_group}</span>
                       </td>
                       <td className="px-6 py-4 text-slate-600 max-w-[140px] truncate">{r.location}</td>
-                      <td className="px-6 py-4 text-slate-600 font-medium">{r.units_needed}</td>
+                      <td className="px-6 py-4 text-slate-600 font-medium">
+                        {r.units_received != null
+                          ? <span>{r.units_received}<span className="text-slate-300">/{r.units_needed}</span></span>
+                          : r.units_needed}
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${urg.cls}`}>
                           <div className={`w-1.5 h-1.5 rounded-full ${urg.dot}`} />
@@ -146,7 +159,7 @@ const HospitalDashboardPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`capitalize text-xs font-semibold px-2.5 py-1 rounded-full ${stat}`}>
-                          {r.status}
+                          {r.status.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-400 text-xs">

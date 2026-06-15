@@ -16,6 +16,12 @@ const dashboardRoutes    = require('./routes/dashboard.routes');
 
 const app = express();
 
+// ── Trust Render's reverse proxy ─────────────────────────────
+// Required so express-rate-limit can correctly read X-Forwarded-For
+// (Render sits behind a load balancer/proxy). Without this,
+// express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // ── Security ──────────────────────────────────────────────────
 app.use(helmet());
 // CORS: FRONTEND_URL can be comma-separated for multiple origins (Vercel + localhost)

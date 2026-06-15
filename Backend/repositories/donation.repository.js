@@ -2,10 +2,11 @@ const db = require('../config/db');
 
 const create = async (donation) => {
     const { rows } = await db.query(
-        `INSERT INTO donations (donor_id, hospital_id, blood_group, donation_date, units_donated, remarks)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-        [donation.donor_id, donation.hospital_id, donation.blood_group,
-         donation.donation_date, donation.units_donated, donation.remarks]
+        `INSERT INTO donations (donor_id, hospital_id, request_id, blood_group, donation_date, units_donated, remarks, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [donation.donor_id, donation.hospital_id, donation.request_id || null,
+         donation.blood_group, donation.donation_date, donation.units_donated,
+         donation.remarks || null, donation.status || 'completed']
     );
     return rows[0];
 };

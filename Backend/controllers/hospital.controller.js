@@ -56,6 +56,39 @@ const getAcceptedDonors = async (req, res, next) => {
     }
 };
 
+const markDonated = async (req, res, next) => {
+    try {
+        const data = await hospitalService.markDonated(
+            req.user.userId,
+            parseInt(req.params.id),
+            parseInt(req.params.responseId)
+        );
+        return res_.success(res, data, 'Donation marked as completed');
+    } catch (err) {
+        if (err.message.includes('not found')) return res_.error(res, err.message, 404);
+        if (err.message.includes('Access denied')) return res_.error(res, err.message, 403);
+        if (err.message.includes('Already')) return res_.error(res, err.message, 409);
+        next(err);
+    }
+};
+
+const rejectDonor = async (req, res, next) => {
+    try {
+        const { reason } = req.body;
+        if (!reason) return res_.error(res, 'Rejection reason is required', 400);
+        const data = await hospitalService.rejectDonorAtHospital(
+            req.user.userId,
+            parseInt(req.params.id),
+            parseInt(req.params.responseId),
+            reason
+        );
+        return res_.success(res, data, 'Donor marked as rejected');
+    } catch (err) {
+        if (err.message.includes('not found')) return res_.error(res, err.message, 404);
+        next(err);
+    }
+};
+
 const getDonationHistory = async (req, res, next) => {
     try {
         const data = await hospitalService.getDonationHistory(req.user.userId);
@@ -73,5 +106,6 @@ const getDashboard = async (req, res, next) => {
 module.exports = {
     createRequest, getRequests, getRequestById,
     updateRequest, deleteRequest, getAcceptedDonors,
+    markDonated, rejectDonor,
     getDonationHistory, getDashboard,
 };

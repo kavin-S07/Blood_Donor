@@ -30,12 +30,18 @@ const Select: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { label: 
   </div>
 );
 
+const STEPS: Step[] = ['role', 'details'];
+const STEP_LABELS: Record<Step, string> = {
+  role:    'Account Type',
+  details: 'Your Details',
+};
+
 const SignupPage: React.FC = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>('role');
-  const [role, setRole] = useState<'donor' | 'hospital' | ''>('');
+  const [step, setStep]       = useState<Step>('role');
+  const [role, setRole]       = useState<'donor' | 'hospital' | ''>('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
 
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '', address: '', city: '', state: '',
@@ -46,6 +52,7 @@ const SignupPage: React.FC = () => {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  // Create the account directly (no email/OTP verification step)
   const handleSignup = async () => {
     setError('');
     setLoading(true);
@@ -68,6 +75,8 @@ const SignupPage: React.FC = () => {
     }
   };
 
+  const stepIndex = STEPS.indexOf(step);
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
@@ -82,22 +91,26 @@ const SignupPage: React.FC = () => {
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          {(['role', 'details'] as Step[]).map((s, i) => (
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {STEPS.map((s, i) => (
             <React.Fragment key={s}>
               <div className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                  step === s ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' :
-                  (step === 'details' && s === 'role') ? 'bg-rose-100 text-rose-600' :
-                  'bg-slate-100 text-slate-400'
+                  step === s
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-200'
+                    : stepIndex > i
+                    ? 'bg-green-500 text-white'
+                    : 'bg-slate-100 text-slate-400'
                 }`}>
-                  {step === 'details' && s === 'role' ? '✓' : i + 1}
+                  {stepIndex > i ? '✓' : i + 1}
                 </div>
                 <span className={`text-xs font-medium hidden sm:block ${step === s ? 'text-slate-700' : 'text-slate-400'}`}>
-                  {s === 'role' ? 'Account Type' : 'Details'}
+                  {STEP_LABELS[s]}
                 </span>
               </div>
-              {i < 1 && <div className={`w-10 h-0.5 transition-all ${step === 'details' ? 'bg-rose-400' : 'bg-slate-200'}`} />}
+              {i < STEPS.length - 1 && (
+                <div className={`w-8 h-0.5 rounded transition-all ${stepIndex > i ? 'bg-green-400' : 'bg-slate-200'}`} />
+              )}
             </React.Fragment>
           ))}
         </div>
@@ -112,7 +125,7 @@ const SignupPage: React.FC = () => {
             </div>
           )}
 
-          {/* Step 1 – Role */}
+          {/* ── Step 1 – Role ── */}
           {step === 'role' && (
             <div className="space-y-4">
               <p className="text-slate-700 font-semibold mb-5">I'm registering as a…</p>
@@ -151,7 +164,7 @@ const SignupPage: React.FC = () => {
             </div>
           )}
 
-          {/* Step 2 – Details */}
+          {/* ── Step 2 – Details ── */}
           {step === 'details' && (
             <div className="space-y-4">
               <Input label="Full name" value={form.name} onChange={set('name')} required placeholder="John Doe" />

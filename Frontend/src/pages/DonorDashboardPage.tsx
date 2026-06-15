@@ -54,6 +54,15 @@ const DonorDashboardPage: React.FC = () => {
     </div>
   );
 
+  const isEligible = (() => {
+    if (dashboard?.eligible_for_donation === false) {
+      const nextDate = dashboard?.next_eligible_date ? new Date(dashboard.next_eligible_date) : null;
+      if (nextDate && nextDate > new Date()) return false; // still in waiting period
+    }
+    return true;
+  })();
+  const nextDate   = dashboard?.next_eligible_date ? new Date(dashboard.next_eligible_date) : null;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       {/* Header */}
@@ -77,6 +86,20 @@ const DonorDashboardPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Eligibility Warning Banner */}
+      {!isEligible && nextDate && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <span className="text-2xl">⏳</span>
+          <div>
+            <p className="text-amber-800 font-semibold text-sm">Temporarily Ineligible</p>
+            <p className="text-amber-600 text-xs mt-0.5">
+              You recently donated blood. You can donate again from{' '}
+              <span className="font-semibold">{nextDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Donations" value={dashboard?.total_donations ?? 0} accent icon="🩸" />
@@ -86,7 +109,24 @@ const DonorDashboardPage: React.FC = () => {
           value={dashboard?.last_donation_date ? new Date(dashboard.last_donation_date).toLocaleDateString() : 'Never'}
           icon="📅"
         />
-        <StatCard label="Status" value={available ? 'Available' : 'Unavailable'} icon={available ? '✅' : '⏸️'} />
+        <StatCard
+          label="Next Eligible"
+          value={
+            isEligible
+              ? 'Eligible Now'
+              : nextDate
+              ? nextDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+              : '—'
+          }
+          sub={
+            isEligible
+              ? undefined
+              : nextDate
+              ? nextDate.toLocaleDateString('en-IN', { year: 'numeric' })
+              : undefined
+          }
+          icon={isEligible ? '✅' : '⏳'}
+        />
       </div>
 
       {/* Quick Actions */}
@@ -126,7 +166,7 @@ const DonorDashboardPage: React.FC = () => {
       {/* Blood compatibility */}
       <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
         <h2 className="text-slate-900 font-semibold mb-1">Blood Type Reference</h2>
-        <p className="text-slate-500 text-sm mb-5">Your compatible blood types are highlighted below</p>
+        <p className="text-slate-500 text-sm mb-5">Your blood type is highlighted below</p>
         <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
           {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => (
             <div
@@ -141,12 +181,6 @@ const DonorDashboardPage: React.FC = () => {
             </div>
           ))}
         </div>
-        {dashboard?.blood_group && (
-          <p className="text-slate-400 text-xs mt-4 flex items-center gap-1.5">
-            <span className="w-3 h-3 bg-rose-600 rounded-sm inline-block" />
-            Your blood type — you can donate to compatible recipients
-          </p>
-        )}
       </div>
     </div>
   );

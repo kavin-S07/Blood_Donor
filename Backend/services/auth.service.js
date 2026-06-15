@@ -1,11 +1,17 @@
-const bcrypt   = require('bcryptjs');
-const jwt      = require('jsonwebtoken');
-const userRepo = require('../repositories/user.repository');
+const bcrypt       = require('bcryptjs');
+const jwt          = require('jsonwebtoken');
+const userRepo     = require('../repositories/user.repository');
 const donorRepo    = require('../repositories/donor.repository');
 const hospitalRepo = require('../repositories/hospital.repository');
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateTokens');
-const jwtConfig = require('../config/jwt');
+const jwtConfig    = require('../config/jwt');
+const otpStore     = require('../utils/otpStore');
 
+// ── Signup ────────────────────────────────────────────────────
+
+/**
+ * Creates the account directly — no email/OTP verification step.
+ */
 const signup = async (data) => {
     const existing = await userRepo.findByEmail(data.email);
     if (existing) throw new Error('Email already registered');
@@ -33,9 +39,11 @@ const signup = async (data) => {
         });
     }
 
-    const { password: _, ...safeUser } = user;
+    const { password: _, otp: __, ...safeUser } = user;
     return safeUser;
 };
+
+// ── Auth ──────────────────────────────────────────────────────
 
 const login = async (email, password) => {
     const user = await userRepo.findByEmail(email);
@@ -64,26 +72,44 @@ const refreshAccessToken = async (token) => {
     const user = await userRepo.findById(decoded.userId);
     if (!user) throw new Error('User not found');
 
-    const accessToken = generateAccessToken(user);
-    return { accessToken };
+    return { accessToken: generateAccessToken(user) };
 };
+
+// ── Password Reset OTP ────────────────────────────────────────
 
 const forgotPassword = async (email) => {
     const user = await userRepo.findByEmail(email);
     if (!user) throw new Error('No account found with that email');
+
+    const otp = otpStore.generate();
+    otpStore.set('reset', email, otp);
+
+    // Email sending removed (no provider configured).
+    // OTP is logged here so it can still be retrieved for testing.
+    console.log(`[Password Reset OTP] ${email} -> ${otp}`);
+
     return user;
 };
 
-const resetPassword = async (email, newPassword) => {
+const verifyOtp = (namespace, email, otp) => {
+    const valid = otpStore.verify(namespace, email, otp);
+    if (!valid) throw new Error('Invalid or expired OTP');
+};
+
+const resetPassword = async (email, otp, newPassword) => {
+    const valid = otpStore.verify('reset', email, otp);
+    if (!valid) throw new Error('Invalid or expired OTP');
+
     const user = await userRepo.findByEmail(email);
     if (!user) throw new Error('User not found');
 
     const hashed = await bcrypt.hash(newPassword, 12);
     await userRepo.updatePassword(user.id, hashed);
+    otpStore.consume('reset', email);
 };
 
 const changePassword = async (userId, currentPassword, newPassword) => {
-    const user = await userRepo.findById(userId);
+    const user  = await userRepo.findById(userId);
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) throw new Error('Current password is incorrect');
 
@@ -91,4 +117,8 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     await userRepo.updatePassword(userId, hashed);
 };
 
-module.exports = { signup, login, refreshAccessToken, forgotPassword, resetPassword, changePassword };
+module.exports = {
+    signup,
+    login, refreshAccessToken,
+    forgotPassword, verifyOtp, resetPassword, changePassword,
+};
