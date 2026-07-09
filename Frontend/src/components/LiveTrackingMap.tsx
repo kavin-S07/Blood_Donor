@@ -35,7 +35,7 @@ const FitBounds: React.FC<FitBoundsProps> = ({ donorPosition, hospitalPosition }
     } else {
       map.setView([hospitalPosition.lat, hospitalPosition.lng], 13);
     }
-  }, [map, donorPosition?.lat, donorPosition?.lng, hospitalPosition.lat, hospitalPosition.lng]);
+  }, [map, donorPosition, hospitalPosition.lat, hospitalPosition.lng]);
 
   return null;
 };

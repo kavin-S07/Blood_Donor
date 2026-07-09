@@ -128,6 +128,7 @@ const DonateModal: React.FC<DonateModalProps> = ({ donorName, bloodGroup, onConf
   </div>
 );
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formatETA = (minutes?: number): string => {
   if (minutes == null) return '--';
   if (minutes < 60) return `${Math.round(minutes)} min`;
@@ -150,6 +151,7 @@ const RequestDetailPage: React.FC = () => {
   const [rejectModal, setRejectModal] = useState<AcceptedDonor | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [donorLocations, setDonorLocations] = useState<Map<number, DonorLocation>>(new Map());
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
 

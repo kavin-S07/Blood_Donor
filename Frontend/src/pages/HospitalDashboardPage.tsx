@@ -45,6 +45,7 @@ const HospitalDashboardPage: React.FC = () => {
     setToast(msg);
     setTimeout(() => setToast(''), 4000);
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [donorLocations, setDonorLocations] = useState<Map<number, DonorLocation>>(new Map());
   const [trackedRequestId, setTrackedRequestId] = useState<number | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
@@ -58,7 +59,9 @@ const HospitalDashboardPage: React.FC = () => {
 
   // ── Live tracking state ───────────────────────────────────────
   const [liveDonorPos, setLiveDonorPos] = useState<{ lat: number; lng: number; heading?: number | null; speed?: number | null } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [liveRouteGeometry, setLiveRouteGeometry] = useState<[number, number][] | undefined>(undefined);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [liveTrackingActive, setLiveTrackingActive] = useState(false);
   const [arrivedMessage, setArrivedMessage] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
