@@ -102,6 +102,16 @@ router.patch(
     adminController.deactivateUser
 );
 
+// FIX: route was missing even though the frontend (AdminUserManagementPage)
+// and services/adminService.ts already call it, and auth.routes.js documents
+// it as the supported admin-assisted password reset flow.
+router.post(
+    '/users/:id/reset-password',
+    authenticate,
+    authorizeRole('admin'),
+    adminController.resetUserPassword
+);
+
 /*
 |--------------------------------------------------------------------------
 | Blood Requests & Donations (monitoring)

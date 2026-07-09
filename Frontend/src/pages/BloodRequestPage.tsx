@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { donorService } from '../services/donorService';
+import { osrmService } from '../services/locationService';
+import { startTrackingDonor, updateDonorLocation } from '../services/socketService';
 import type { BloodRequest } from '../types/donor';
 
 const urgencyConfig: Record<string, { label: string; cls: string; dot: string }> = {
@@ -14,6 +16,8 @@ const BloodRequestPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [trackingRequestId, setTrackingRequestId] = useState<number | null>(null);
+  const [distanceInfo, setDistanceInfo] = useState<{ distance_km: number; duration_min: number } | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -36,6 +40,39 @@ const BloodRequestPage: React.FC = () => {
     try {
       await donorService.acceptRequest(id);
       showToast('Request accepted! The hospital will be notified.', 'success');
+      const req = requests.find(r => r.id === id);
+      if (req && req.hospital_latitude && req.hospital_longitude) {
+        setTrackingRequestId(id);
+        // Start location tracking via Socket.IO
+        startTrackingDonor(id);
+        // Get current position and start broadcasting
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              updateDonorLocation(pos.coords.latitude, pos.coords.longitude);
+              // Calculate distance to hospital
+              osrmService.getRoute(
+                pos.coords.latitude, pos.coords.longitude,
+                req.hospital_latitude!, req.hospital_longitude!
+              ).then(route => {
+                if (route) setDistanceInfo(route);
+              });
+              // Start interval to send location every 5 seconds
+              const interval = setInterval(() => {
+                navigator.geolocation.getCurrentPosition(
+                  (p) => updateDonorLocation(p.coords.latitude, p.coords.longitude),
+                  () => {},
+                  { enableHighAccuracy: true, timeout: 10000 }
+                );
+              }, 5000);
+              // Store interval ID for cleanup
+              (window as any).__trackingInterval = interval;
+            },
+            () => {},
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+      }
       load();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -54,6 +91,15 @@ const BloodRequestPage: React.FC = () => {
     } catch {} finally {
       setActing(null);
     }
+  };
+
+  const stopTracking = () => {
+    if ((window as any).__trackingInterval) {
+      clearInterval((window as any).__trackingInterval);
+      (window as any).__trackingInterval = null;
+    }
+    setTrackingRequestId(null);
+    setDistanceInfo(null);
   };
 
   return (
@@ -84,6 +130,34 @@ const BloodRequestPage: React.FC = () => {
           Refresh
         </button>
       </div>
+
+      {/* Active Navigation Banner */}
+      {trackingRequestId && distanceInfo && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-blue-800 font-semibold">🧭 Navigation Active</h3>
+              <p className="text-blue-600 text-sm mt-1">You are heading to the hospital. Live location is being shared.</p>
+              <div className="flex gap-6 mt-3">
+                <div className="text-blue-700">
+                  <span className="text-xs">Distance</span>
+                  <p className="text-lg font-bold">{distanceInfo.distance_km} km</p>
+                </div>
+                <div className="text-blue-700">
+                  <span className="text-xs">ETA</span>
+                  <p className="text-lg font-bold">{distanceInfo.duration_min} min</p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={stopTracking}
+              className="text-xs text-red-600 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Stop Sharing
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">

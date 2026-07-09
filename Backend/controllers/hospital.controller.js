@@ -103,9 +103,69 @@ const getDashboard = async (req, res, next) => {
     } catch (err) { next(err); }
 };
 
+const getNearestDonors = async (req, res, next) => {
+    try {
+        const data = await hospitalService.getNearestDonors(req.user.userId, parseInt(req.params.id));
+        return res_.success(res, data);
+    } catch (err) {
+        if (err.message === 'Request not found') return res_.error(res, err.message, 404);
+        if (err.message === 'Access denied') return res_.error(res, err.message, 403);
+        next(err);
+    }
+};
+
+const getEnhancedDashboard = async (req, res, next) => {
+    try {
+        const data = await hospitalService.getEnhancedDashboard(req.user.userId);
+        return res_.success(res, data);
+    } catch (err) { next(err); }
+};
+
+const getAnalytics = async (req, res, next) => {
+    try {
+        const data = await hospitalService.getAnalytics(req.user.userId);
+        return res_.success(res, data);
+    } catch (err) { next(err); }
+};
+
+const getFilteredRequests = async (req, res, next) => {
+    try {
+        const data = await hospitalService.getFilteredRequests(req.user.userId, req.query);
+        return res_.success(res, data);
+    } catch (err) { next(err); }
+};
+
+const getFilteredDonors = async (req, res, next) => {
+    try {
+        const data = await hospitalService.getFilteredDonors(req.user.userId, req.query);
+        return res_.success(res, data);
+    } catch (err) { next(err); }
+};
+
+const getNotificationLogs = async (req, res, next) => {
+    try {
+        const data = await hospitalService.getNotificationLogs(req.user.userId, req.query.limit);
+        return res_.success(res, data);
+    } catch (err) { next(err); }
+};
+
+const notifyNextNearestDonor = async (req, res, next) => {
+    try {
+        const data = await hospitalService.notifyNextNearestDonor(req.user.userId, parseInt(req.params.id));
+        return res_.success(res, data, data.notified ? 'Next nearest donor notified' : 'No more donors available');
+    } catch (err) {
+        if (err.message === 'Request not found') return res_.error(res, err.message, 404);
+        if (err.message === 'Access denied') return res_.error(res, err.message, 403);
+        next(err);
+    }
+};
+
 module.exports = {
     createRequest, getRequests, getRequestById,
     updateRequest, deleteRequest, getAcceptedDonors,
     markDonated, rejectDonor,
-    getDonationHistory, getDashboard,
+    getDonationHistory, getDashboard, getEnhancedDashboard,
+    getAnalytics, getFilteredRequests, getFilteredDonors,
+    getNotificationLogs, notifyNextNearestDonor,
+    getNearestDonors,
 };

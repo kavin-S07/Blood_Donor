@@ -2,6 +2,7 @@
 
 const { body } = require('express-validator');
 const { BLOOD_GROUPS } = require('../utils/constants');
+const { optionalLocationValidator } = require('./location.validator');
 
 const signupValidator = [
     body('name').trim().notEmpty().withMessage('Name is required'),
@@ -43,6 +44,9 @@ const signupValidator = [
     body('contact_number')
         .if(body('role').equals('hospital'))
         .trim().notEmpty().withMessage('Hospital contact number is required'),
+
+    // ── Location (optional at signup; captured via the map picker) ────
+    ...optionalLocationValidator,
 ];
 
 const loginValidator = [

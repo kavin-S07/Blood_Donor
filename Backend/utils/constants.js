@@ -5,6 +5,7 @@ const EMERGENCY_LEVELS = ['low', 'medium', 'high', 'critical'];
 const REQUEST_STATUS = {
     PENDING:   'pending',
     ACCEPTED:  'accepted',
+    ARRIVED:   'arrived',
     COMPLETED: 'completed',
     CANCELLED: 'cancelled',
 };
@@ -13,6 +14,7 @@ const RESPONSE_STATUS = {
     PENDING:  'pending',
     ACCEPTED: 'accepted',
     REJECTED: 'rejected',
+    DONATED:  'donated',
 };
 
 const ROLES = {

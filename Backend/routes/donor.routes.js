@@ -12,5 +12,6 @@ router.post('/request/:id/reject',    ctrl.rejectRequest);
 router.put('/availability',           ctrl.updateAvailability);
 router.get('/history',                ctrl.getDonationHistory);
 router.get('/dashboard',              ctrl.getDashboard);
+router.get('/active-request',         ctrl.getActiveRequest);
 
 module.exports = router;

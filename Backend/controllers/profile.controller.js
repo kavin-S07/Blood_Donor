@@ -40,6 +40,61 @@ const updateProfile = async (req, res, next) => {
     } catch (err) { next(err); }
 };
 
+// ── Location ──────────────────────────────────────────────────
+// GET /api/profile/location
+const getLocation = async (req, res, next) => {
+    try {
+        const user = await userRepo.findById(req.user.userId);
+        if (!user) return res_.error(res, 'User not found', 404);
+
+        return res_.success(res, {
+            latitude:          user.latitude !== null && user.latitude !== undefined ? Number(user.latitude) : null,
+            longitude:         user.longitude !== null && user.longitude !== undefined ? Number(user.longitude) : null,
+            formatted_address: user.formatted_address || null,
+        });
+    } catch (err) { next(err); }
+};
+
+// PUT /api/profile/location
+const updateLocation = async (req, res, next) => {
+    try {
+        const { latitude, longitude, formatted_address } = req.body;
+
+        const lat = parseFloat(latitude);
+        const lng = parseFloat(longitude);
+
+        if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+            return res_.error(res, 'Invalid latitude', 400);
+        }
+        if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+            return res_.error(res, 'Invalid longitude', 400);
+        }
+        if (!formatted_address || !formatted_address.trim()) {
+            return res_.error(res, 'Formatted address is required', 400);
+        }
+
+        const locationFields = { latitude: lat, longitude: lng, formatted_address: formatted_address.trim() };
+
+        const user = await userRepo.update(req.user.userId, locationFields);
+        if (!user) return res_.error(res, 'User not found', 404);
+
+        // Keep the hospitals table (source of truth for hospital location
+        // elsewhere in the app) in sync when a hospital updates its location.
+        if (user.role === 'hospital') {
+            const hospital = await hospitalRepo.findByUserId(user.id);
+            if (hospital) {
+                await hospitalRepo.update(hospital.id, locationFields);
+            }
+        }
+
+        return res_.success(res, {
+            latitude:          Number(user.latitude),
+            longitude:         Number(user.longitude),
+            formatted_address: user.formatted_address,
+        }, 'Location updated successfully');
+    } catch (err) { next(err); }
+};
+
 const changePassword = async (req, res, next) => {
     try {
         const { current_password, new_password } = req.body;
@@ -53,4 +108,4 @@ const changePassword = async (req, res, next) => {
     }
 };
 
-module.exports = { getProfile, updateProfile, changePassword };
+module.exports = { getProfile, updateProfile, changePassword, getLocation, updateLocation };

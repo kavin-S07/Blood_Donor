@@ -7,6 +7,9 @@ const createRequestValidator = [
     body('location').trim().notEmpty().withMessage('Location is required'),
     body('emergency_level').isIn(EMERGENCY_LEVELS).withMessage('Emergency level must be low, medium, high, or critical'),
     body('description').optional().trim(),
+    // Optional pickup coordinates (defaults to the hospital's own location if omitted)
+    body('pickup_latitude').optional({ nullable: true }).isFloat({ min: -90, max: 90 }).withMessage('Invalid pickup latitude'),
+    body('pickup_longitude').optional({ nullable: true }).isFloat({ min: -180, max: 180 }).withMessage('Invalid pickup longitude'),
 ];
 
 const updateRequestValidator = [

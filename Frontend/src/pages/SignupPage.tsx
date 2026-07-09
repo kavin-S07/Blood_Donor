@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { BLOOD_GROUPS } from '../types/donor';
+import LocationPicker, { LocationValue } from '../components/LocationPicker';
 
 type Step = 'role' | 'details';
 
@@ -48,6 +49,7 @@ const SignupPage: React.FC = () => {
     blood_group: '', age: '', gender: '',
     hospital_name: '', license_number: '', hospital_address: '', contact_number: '',
   });
+  const [location, setLocation] = useState<LocationValue | null>(null);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -60,6 +62,11 @@ const SignupPage: React.FC = () => {
       const base = {
         name: form.name, email: form.email, password: form.password,
         phone: form.phone, address: form.address, city: form.city, state: form.state,
+        ...(location ? {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          formatted_address: location.formatted_address,
+        } : {}),
       };
       const payload =
         role === 'donor'
@@ -175,6 +182,19 @@ const SignupPage: React.FC = () => {
                 <Input label="City" value={form.city} onChange={set('city')} placeholder="Chennai" />
                 <Input label="State" value={form.state} onChange={set('state')} placeholder="Tamil Nadu" />
               </div>
+
+              <LocationPicker
+                label="Pin your location on the map"
+                value={location}
+                onChange={(loc) => {
+                  setLocation(loc);
+                  setForm((f) => ({
+                    ...f,
+                    address: f.address || loc.formatted_address,
+                    hospital_address: f.hospital_address || loc.formatted_address,
+                  }));
+                }}
+              />
 
               {role === 'donor' && (
                 <>

@@ -54,7 +54,15 @@ const getDashboard = async (req, res, next) => {
     } catch (err) { next(err); }
 };
 
+const getActiveRequest = async (req, res, next) => {
+    try {
+        const data = await donorService.getActiveRequest(req.user.userId);
+        return res_.success(res, data);
+    } catch (err) { next(err); }
+};
+
 module.exports = {
     getMatchingRequests, acceptRequest, rejectRequest,
     updateAvailability, getDonationHistory, getDashboard,
+    getActiveRequest,
 };

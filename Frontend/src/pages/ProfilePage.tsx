@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { profileService } from '../services/Profileservice';
+import { locationService } from '../services/locationService';
+import LocationPicker, { LocationValue } from '../components/LocationPicker';
 
 const ProfilePage: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -15,6 +17,13 @@ const ProfilePage: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState('');
+
+  const [location, setLocation] = useState<LocationValue | null>(null);
+  const [locationDraft, setLocationDraft] = useState<LocationValue | null>(null);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const [locationSuccess, setLocationSuccess] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -33,7 +42,38 @@ const ProfilePage: React.FC = () => {
       }
     };
     load();
+
+    const loadLocation = async () => {
+      try {
+        const loc = await locationService.getLocation();
+        if (loc && loc.latitude !== null && loc.longitude !== null) {
+          setLocation(loc);
+          setLocationDraft(loc);
+        }
+      } catch {} finally {
+        setLocationLoading(false);
+      }
+    };
+    loadLocation();
   }, []);
+
+  const handleSaveLocation = async () => {
+    if (!locationDraft) return;
+    setLocationError('');
+    setLocationSaving(true);
+    try {
+      const saved = await locationService.updateLocation(locationDraft);
+      setLocation(saved);
+      setLocationDraft(saved);
+      setLocationSuccess('Location updated successfully');
+      setTimeout(() => setLocationSuccess(''), 3000);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setLocationError(msg || 'Failed to update location');
+    } finally {
+      setLocationSaving(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +216,60 @@ const ProfilePage: React.FC = () => {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Location */}
+      <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-slate-900 font-semibold">📍 My Location</h2>
+            <p className="text-slate-400 text-xs mt-1">
+              Used to show your position on the map. Search a place, drag the pin, or use your current GPS location.
+            </p>
+          </div>
+        </div>
+
+        {locationError && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
+            <span>!</span> {locationError}
+          </div>
+        )}
+        {locationSuccess && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4">
+            <span>✓</span> {locationSuccess}
+          </div>
+        )}
+
+        {locationLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            <LocationPicker
+              label=""
+              value={locationDraft}
+              onChange={(loc) => setLocationDraft(loc)}
+            />
+            <div className="flex justify-end mt-4">
+              <button
+                type="button"
+                onClick={handleSaveLocation}
+                disabled={
+                  locationSaving ||
+                  !locationDraft ||
+                  (location !== null &&
+                    locationDraft.latitude === location.latitude &&
+                    locationDraft.longitude === location.longitude &&
+                    locationDraft.formatted_address === location.formatted_address)
+                }
+                className="bg-rose-600 hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all shadow-sm"
+              >
+                {locationSaving ? 'Saving…' : 'Save location'}
+              </button>
+            </div>
+          </>
         )}
       </div>
 

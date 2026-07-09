@@ -350,7 +350,7 @@ const HomePage: React.FC = () => {
     user?.role === 'donor' ? '/donor' : user?.role === 'hospital' ? '/hospital' : '/admin';
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden text-slate-900">
+    <div className="min-h-screen overflow-x-hidden text-slate-900">
       {/* HERO */}
       <section
         ref={heroRef}

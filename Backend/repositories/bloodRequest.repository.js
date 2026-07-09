@@ -2,10 +2,14 @@ const db = require('../config/db');
 
 const create = async (request) => {
     const { rows } = await db.query(
-        `INSERT INTO blood_requests (hospital_id, blood_group, units_needed, location, emergency_level, description)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+        `INSERT INTO blood_requests
+            (hospital_id, blood_group, units_needed, location, emergency_level, description,
+             hospital_latitude, hospital_longitude, pickup_latitude, pickup_longitude)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
         [request.hospital_id, request.blood_group, request.units_needed,
-         request.location, request.emergency_level, request.description]
+         request.location, request.emergency_level, request.description,
+         request.hospital_latitude ?? null, request.hospital_longitude ?? null,
+         request.pickup_latitude ?? null, request.pickup_longitude ?? null]
     );
     return rows[0];
 };

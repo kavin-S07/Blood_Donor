@@ -36,7 +36,10 @@ class AdminService {
             email: hospital.email,
             password: hospital.password_hash,
             phone: hospital.phone,
-            role: 'hospital'
+            role: 'hospital',
+            latitude: hospital.latitude,
+            longitude: hospital.longitude,
+            formatted_address: hospital.formatted_address,
         });
 
         await hospitalRepo.create({
@@ -45,7 +48,10 @@ class AdminService {
             license_number: hospital.license_number,
             hospital_address: hospital.address,
             contact_number: hospital.phone,
-            verified: true
+            verified: true,
+            latitude: hospital.latitude,
+            longitude: hospital.longitude,
+            formatted_address: hospital.formatted_address,
         });
 
         await pendingHospitalRepo.approve(id);

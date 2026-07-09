@@ -5,6 +5,8 @@ const adminRepo           = require('../repositories/admin.repository');
 const userRepo            = require('../repositories/user.repository');
 const hospitalRepo        = require('../repositories/hospital.repository');
 const db                  = require('../config/db');
+const bcrypt              = require('bcryptjs');
+const crypto              = require('crypto');
 
 
 // ── Dashboard Statistics ──────────────────────────────────────
@@ -194,6 +196,38 @@ const deactivateUser = async (req, res) => {
     }
 };
 
+// ── Admin-assisted password reset (for locked-out users) ───────
+// Referenced by routes/auth.routes.js NOTE and used by the frontend
+// AdminUserManagementPage, but was previously missing from the API.
+
+const resetUserPassword = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await userRepo.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Generate a random temporary password, e.g. "Xk9pQz3T"
+        const tempPassword = crypto.randomBytes(6).toString('base64')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .slice(0, 10) || 'Temp1234';
+
+        const hashed = await bcrypt.hash(tempPassword, 12);
+        await adminRepo.resetPassword(id, hashed);
+
+        res.status(200).json({
+            success: true,
+            message: 'Password reset successfully',
+            temp_password: tempPassword,
+        });
+    } catch (error) {
+        console.error('resetUserPassword:', error);
+        res.status(500).json({ success: false, message: 'Failed to reset password' });
+    }
+};
+
 // ── Blood Request Monitoring ──────────────────────────────────
 
 const getAllBloodRequests = async (req, res) => {
@@ -231,6 +265,7 @@ module.exports = {
     getAllUsers,
     activateUser,
     deactivateUser,
+    resetUserPassword,
 
     getAllBloodRequests,
     getDonationHistory,

@@ -1,3 +1,4 @@
+
 import { api } from './api';
 
 export const donorService = {
@@ -23,6 +24,10 @@ export const donorService = {
   },
   getDonationHistory: async () => {
     const { data } = await api.get('/donor/history');
+    return data.data;
+  },
+  getActiveRequest: async () => {
+    const { data } = await api.get('/donor/active-request');
     return data.data;
   },
 };

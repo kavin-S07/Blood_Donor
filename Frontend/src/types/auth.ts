@@ -8,6 +8,9 @@ export interface User {
   address?: string;
   city?: string;
   state?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  formatted_address?: string | null;
   role: Role;
   created_at: string;
 }
@@ -30,6 +33,9 @@ export interface HospitalProfile {
   license_number: string;
   hospital_address: string;
   contact_number: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  formatted_address?: string | null;
 }
 
 export interface AuthTokens {
@@ -54,6 +60,9 @@ export interface SignupDonorData {
   age: number;
   gender?: string;
   last_donation_date?: string;
+  latitude?: number;
+  longitude?: number;
+  formatted_address?: string;
 }
 
 export interface SignupHospitalData {
@@ -69,4 +78,7 @@ export interface SignupHospitalData {
   license_number: string;
   hospital_address: string;
   contact_number: string;
+  latitude?: number;
+  longitude?: number;
+  formatted_address?: string;
 }

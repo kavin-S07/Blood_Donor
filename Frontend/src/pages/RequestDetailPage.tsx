@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { hospitalService } from '../services/hospitalService';
-import type { BloodRequest, AcceptedDonor } from '../types/donor';
+import { connectSocket, watchDonors } from '../services/socketService';
+import type { BloodRequest, AcceptedDonor, DonorLocation, RouteInfo } from '../types/donor';
+import type { LiveLocationReceive, DonorArrivedPayload } from '../types/liveTracking';
 import { EMERGENCY_LEVELS } from '../types/donor';
+import LiveTrackingMap from '../components/LiveTrackingMap';
 
 const urgencyConfig: Record<string, string> = {
   critical: 'bg-red-100 text-red-700 border border-red-200',
@@ -37,7 +40,6 @@ interface RejectModalProps {
 const RejectModal: React.FC<RejectModalProps> = ({ donorName, onConfirm, onCancel, loading }) => {
   const [reason, setReason] = useState('');
   const [custom, setCustom] = useState('');
-
   const finalReason = reason === 'Other' ? custom.trim() : reason;
 
   return (
@@ -126,6 +128,14 @@ const DonateModal: React.FC<DonateModalProps> = ({ donorName, bloodGroup, onConf
   </div>
 );
 
+const formatETA = (minutes?: number): string => {
+  if (minutes == null) return '--';
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return `${h}h ${m}m`;
+};
+
 const RequestDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -136,10 +146,17 @@ const RequestDetailPage: React.FC = () => {
   const [editForm, setEditForm] = useState({ status: '', emergency_level: '', units_needed: '' });
   const [saving, setSaving] = useState(false);
 
-  // Modal state
   const [donateModal, setDonateModal] = useState<AcceptedDonor | null>(null);
   const [rejectModal, setRejectModal] = useState<AcceptedDonor | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const [donorLocations, setDonorLocations] = useState<Map<number, DonorLocation>>(new Map());
+  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
+
+  // ── Live tracking state ───────────────────────────────────────
+  const [liveDonorPos, setLiveDonorPos] = useState<{ lat: number; lng: number; heading?: number | null; speed?: number | null } | null>(null);
+  const [arrivedMessage, setArrivedMessage] = useState<string | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -162,6 +179,47 @@ const RequestDetailPage: React.FC = () => {
   }, [id, navigate]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!request || request.status !== 'accepted') return;
+
+    const socket = connectSocket();
+    watchDonors(Number(id));
+
+    socket.on('donor:location', (location: DonorLocation) => {
+      setDonorLocations(prev => {
+        const next = new Map(prev);
+        next.set(location.donorId, location);
+        return next;
+      });
+    });
+
+    socket.on('donor:route', (route: RouteInfo | null) => {
+      if (route) setRouteInfo(route);
+    });
+
+    // ── Live tracking listeners ──────────────────────────────────
+    socket.on('location:receive', (data: LiveLocationReceive) => {
+      setLiveDonorPos({
+        lat: data.latitude,
+        lng: data.longitude,
+        heading: data.heading,
+        speed: data.speed,
+      });
+      setLastUpdateTime(data.timestamp);
+    });
+
+    socket.on('donor:arrived', (data: DonorArrivedPayload) => {
+      setArrivedMessage(data.message);
+    });
+
+    return () => {
+      socket.off('donor:location');
+      socket.off('donor:route');
+      socket.off('location:receive');
+      socket.off('donor:arrived');
+    };
+  }, [request, id]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -190,7 +248,6 @@ const RequestDetailPage: React.FC = () => {
             : d
         )
       );
-      // Refresh request to get updated units_received
       const updatedReq = await hospitalService.getRequestById(Number(id));
       setRequest(updatedReq);
       setDonateModal(null);
@@ -228,10 +285,16 @@ const RequestDetailPage: React.FC = () => {
   const reqStatusConfig: Record<string, string> = {
     pending:            'text-amber-600 bg-amber-50',
     accepted:           'text-blue-600 bg-blue-50',
+    arrived:            'text-green-600 bg-green-50',
     completed:          'text-green-600 bg-green-50',
     partially_completed:'text-orange-600 bg-orange-50',
     cancelled:          'text-slate-400 bg-slate-50',
   };
+
+  const hasActiveDonors = donors.some(d => d.acceptance_status === 'accepted');
+  const hospitalLat = request.hospital_latitude;
+  const hospitalLng = request.hospital_longitude;
+  const showMap = hasActiveDonors && hospitalLat && hospitalLng;
 
   return (
     <>
@@ -259,7 +322,6 @@ const RequestDetailPage: React.FC = () => {
         </button>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Request details */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-slate-900 font-semibold">Request Details</h2>
@@ -275,7 +337,7 @@ const RequestDetailPage: React.FC = () => {
                 <div>
                   <label className="text-slate-400 text-xs mb-1 block">Status</label>
                   <select value={editForm.status} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))} className={`w-full ${inputCls}`}>
-                    {['pending', 'accepted', 'completed', 'partially_completed', 'cancelled'].map((s) => (
+                    {['pending', 'accepted', 'arrived', 'completed', 'partially_completed', 'cancelled'].map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
@@ -324,7 +386,6 @@ const RequestDetailPage: React.FC = () => {
                     {request.status.replace('_', ' ')}
                   </span>
                 </div>
-                {/* Progress bar */}
                 {(request.units_received ?? 0) > 0 && (
                   <div className="pt-2">
                     <div className="flex justify-between text-xs text-slate-400 mb-1">
@@ -343,7 +404,6 @@ const RequestDetailPage: React.FC = () => {
             )}
           </div>
 
-          {/* Accepted Donors */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6">
             <h2 className="text-slate-900 font-semibold mb-5">
               Accepted Donors ({donors.length})
@@ -410,6 +470,44 @@ const RequestDetailPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Live Tracking Map — Replace static map with LiveTrackingMap */}
+        {showMap && (
+          <div className="mt-6 bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <h2 className="text-slate-900 font-semibold">📍 Donor Tracking</h2>
+              <p className="text-slate-400 text-xs mt-0.5">Live locations of donors heading to your hospital</p>
+              {(routeInfo || liveDonorPos) && (
+                <div className="mt-2 flex gap-4 text-sm">
+                  {routeInfo && (
+                    <>
+                      <span className="text-blue-700">🚗 <strong>{routeInfo.distance_km} km</strong></span>
+                      <span className="text-blue-700">⏱ ETA: <strong>{routeInfo.duration_min} min</strong></span>
+                    </>
+                  )}
+                  {liveDonorPos?.speed != null && (
+                    <span className="text-blue-700">⚡ <strong>{(liveDonorPos.speed * 3.6).toFixed(1)} km/h</strong></span>
+                  )}
+                </div>
+              )}
+              {arrivedMessage && (
+                <div className="mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-center">
+                  <p className="text-green-700 font-semibold text-sm">✅ {arrivedMessage}</p>
+                </div>
+              )}
+            </div>
+            <LiveTrackingMap
+              hospitalPosition={{ lat: hospitalLat!, lng: hospitalLng! }}
+              donorPosition={liveDonorPos}
+              height="350px"
+            />
+            {lastUpdateTime && (
+              <div className="px-6 py-2 bg-slate-50 border-t border-slate-100 text-center text-xs text-slate-400">
+                Last updated: {new Date(lastUpdateTime).toLocaleTimeString()}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

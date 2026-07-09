@@ -123,6 +123,21 @@ class AdminRepository {
         return result.rows[0];
     }
 
+    async resetPassword(userId, hashedPassword) {
+
+        const result = await db.query(
+            `
+            UPDATE users
+            SET password = $2
+            WHERE id = $1
+            RETURNING id, name, email, role
+            `,
+            [userId, hashedPassword]
+        );
+
+        return result.rows[0];
+    }
+
     async getAllHospitals() {
 
         const result = await db.query(`

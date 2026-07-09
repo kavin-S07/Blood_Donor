@@ -6,8 +6,9 @@ const db = require('../config/db');
 const create = async (hospital) => {
     const { rows } = await db.query(
         `INSERT INTO hospitals
-             (user_id, hospital_name, license_number, hospital_address, contact_number, verified)
-         VALUES ($1, $2, $3, $4, $5, $6)
+             (user_id, hospital_name, license_number, hospital_address, contact_number, verified,
+              latitude, longitude, formatted_address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
         [
             hospital.user_id,
@@ -16,6 +17,9 @@ const create = async (hospital) => {
             hospital.hospital_address,
             hospital.contact_number,
             hospital.verified || false,
+            hospital.latitude ?? null,
+            hospital.longitude ?? null,
+            hospital.formatted_address ?? null,
         ]
     );
     return rows[0];

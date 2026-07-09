@@ -17,6 +17,10 @@ const donorRoutes        = require('./routes/donor.routes');
 const profileRoutes      = require('./routes/profile.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const dashboardRoutes    = require('./routes/dashboard.routes');
+const donorNearestRoutes   = require('./routes/donorNearest.routes');   // Smart Nearest Donor Matching
+const requestNearestRoutes = require('./routes/requestNearest.routes'); // Smart Nearest Donor Matching
+const navigationRoutes     = require('./routes/navigation.routes');     // Donor Navigation (OSRM route + geometry)
+const liveTrackingRoutes   = require('./routes/liveTracking.routes');   // Real-Time Donor Live Tracking
 
 const app = express();
 
@@ -63,10 +67,14 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth',          authRoutes);
 app.use('/api/admin',         adminRoutes);          // FIX: registered admin routes
 app.use('/api/hospital',      hospitalRoutes);
+app.use('/api/donor',         donorNearestRoutes);   // GET /nearest — hospital-only, must precede donorRoutes below
 app.use('/api/donor',         donorRoutes);
 app.use('/api/profile',       profileRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/dashboard',     dashboardRoutes);
+app.use('/api/request',       requestNearestRoutes); // GET /:id/nearest, POST /:id/notify — hospital-only
+app.use('/api/request',       navigationRoutes);      // GET /:id/route — donor-only (Donor Navigation)
+app.use('/api/request',       liveTrackingRoutes);    // GET /:id/live-location, GET /:id/tracking — hospital-only
 
 // ── 404 & Error handlers ──────────────────────────────────────
 app.use(notFound);

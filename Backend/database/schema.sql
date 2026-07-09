@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS users (
     address    TEXT,
     city       VARCHAR(100),
     state      VARCHAR(100),
+    latitude          DOUBLE PRECISION,
+    longitude         DOUBLE PRECISION,
+    formatted_address TEXT,
     role       VARCHAR(20)   NOT NULL
                CHECK(role IN ('donor','hospital','admin')),
     is_active  BOOLEAN       DEFAULT TRUE,
@@ -58,6 +61,9 @@ CREATE TABLE IF NOT EXISTS hospitals (
     hospital_address TEXT         NOT NULL,
     contact_number   VARCHAR(20)  NOT NULL,
     verified         BOOLEAN      DEFAULT FALSE,
+    latitude          DOUBLE PRECISION,
+    longitude         DOUBLE PRECISION,
+    formatted_address TEXT,
     created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
 
@@ -74,6 +80,9 @@ CREATE TABLE IF NOT EXISTS pending_hospitals (
     license_number   VARCHAR(100) NOT NULL,
     address          TEXT         NOT NULL,
     phone            VARCHAR(20)  NOT NULL,
+    latitude          DOUBLE PRECISION,
+    longitude         DOUBLE PRECISION,
+    formatted_address TEXT,
     status           VARCHAR(20)  DEFAULT 'pending'
                      CHECK(status IN ('pending','approved','rejected')),
     rejection_reason TEXT,
@@ -88,6 +97,10 @@ CREATE TABLE IF NOT EXISTS blood_requests (
     blood_group    VARCHAR(5)  NOT NULL,
     units_needed   INTEGER     NOT NULL,
     location       TEXT        NOT NULL,
+    hospital_latitude  DOUBLE PRECISION,
+    hospital_longitude DOUBLE PRECISION,
+    pickup_latitude    DOUBLE PRECISION,
+    pickup_longitude   DOUBLE PRECISION,
     emergency_level VARCHAR(20)
                    CHECK(emergency_level IN ('low','medium','high','critical')),
     description    TEXT,

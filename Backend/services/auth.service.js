@@ -30,7 +30,13 @@ const signup = async (data) => {
     if (data.role === 'donor') {
         // Donors: create account immediately
         const hashed = await bcrypt.hash(data.password, 12);
-        const user   = await userRepo.create({ ...data, password: hashed });
+        const user   = await userRepo.create({
+            ...data,
+            password: hashed,
+            latitude:          data.latitude ?? null,
+            longitude:         data.longitude ?? null,
+            formatted_address: data.formatted_address || null,
+        });
 
         await donorRepo.create({
             user_id:            user.id,
@@ -56,6 +62,9 @@ const signup = async (data) => {
             license_number: data.license_number,
             address:        data.hospital_address,
             phone:          data.contact_number  || data.phone,
+            latitude:          data.latitude ?? null,
+            longitude:         data.longitude ?? null,
+            formatted_address: data.formatted_address || null,
         });
 
         return {

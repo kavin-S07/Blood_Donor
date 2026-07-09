@@ -12,10 +12,12 @@ const findById = async (id) => {
 
 const create = async (user) => {
     const { rows } = await db.query(
-        `INSERT INTO users (name, email, password, phone, address, city, state, role)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        `INSERT INTO users (name, email, password, phone, address, city, state, role,
+                             latitude, longitude, formatted_address)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
         [user.name, user.email, user.password, user.phone,
-         user.address, user.city, user.state, user.role]
+         user.address, user.city, user.state, user.role,
+         user.latitude ?? null, user.longitude ?? null, user.formatted_address ?? null]
     );
     return rows[0];
 };

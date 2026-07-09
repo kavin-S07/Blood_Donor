@@ -9,6 +9,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignupPage = lazy(() => import('./pages/SignupPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const DonorDashboardPage = lazy(() => import('./pages/DonorDashboardPage'));
+const DonorNavigationPage = lazy(() => import('./pages/DonorNavigationPage'));
 const HospitalDashboardPage = lazy(() => import('./pages/HospitalDashboardPage'));
 const BloodRequestPage = lazy(() => import('./pages/BloodRequestPage'));
 const CreateBloodRequestPage = lazy(() => import('./pages/CreateBloodRequestPage'));
@@ -54,6 +55,9 @@ const App: React.FC = () => (
           } />
           <Route path="/donor/history" element={
             <ProtectedRoute role="donor"><Layout><DonationHistoryPage /></Layout></ProtectedRoute>
+          } />
+          <Route path="/donor/navigation" element={
+            <ProtectedRoute role="donor"><Layout><DonorNavigationPage /></Layout></ProtectedRoute>
           } />
 
           {/* Hospital routes */}

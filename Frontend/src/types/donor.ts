@@ -11,9 +11,14 @@ export interface BloodRequest {
   created_at: string;
   hospital_name?: string;
   contact_number?: string;
+  hospital_address?: string;
   accepted_count?: number;
   donated_count?: number;
   my_response_status?: 'pending' | 'accepted' | 'rejected' | 'donated';
+  hospital_latitude?: number;
+  hospital_longitude?: number;
+  pickup_latitude?: number;
+  pickup_longitude?: number;
 }
 
 export interface Donation {
@@ -75,5 +80,88 @@ export interface Notification {
   created_at: string;
 }
 
+export interface NearestDonor {
+  donor_id: number;
+  name: string;
+  phone: string;
+  blood_group: string;
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+  distance_km: number | null;
+  duration_min: number | null;
+  profile_photo_url?: string | null;
+  availability?: boolean;
+  eligible_for_donation?: boolean;
+}
+
+// Response shape for the Smart Nearest Donor Matching endpoints
+// (GET /donor/nearest and GET /request/:id/nearest)
+export interface NearestDonorsResult {
+  donors: NearestDonor[];
+  total_compatible: number;
+  routing_unavailable: number;
+  message?: string;
+}
+
+export type NotifyScope = 'top5' | 'top10' | 'all';
+
+export interface NotifyDonorsResult {
+  notified: number;
+  scope: NotifyScope;
+}
+
+export interface DonorLocation {
+  donorId: number;
+  latitude: number;
+  longitude: number;
+  updatedAt: string;
+}
+
+export interface RouteInfo {
+  distance_km: number;
+  duration_min: number;
+}
+
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
 export const EMERGENCY_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
+
+// ── Donor Navigation feature ────────────────────────────────────
+// Response shape for GET /api/request/:id/route
+export interface NavigationHospital {
+  id: number;
+  name: string;
+  address: string;
+  contact_number: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface NavigationDonor {
+  id: number;
+  name: string;
+  blood_group: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface NavigationRequestInfo {
+  id: number;
+  blood_group: string;
+  units_needed: number;
+  emergency_level: 'low' | 'medium' | 'high' | 'critical';
+  status: string;
+}
+
+export interface NavigationRoute {
+  hospital: NavigationHospital;
+  donor: NavigationDonor;
+  request: NavigationRequestInfo;
+  distance: string;
+  distance_km: number;
+  duration: string;
+  duration_min: number;
+  estimatedArrival: string;
+  geometry: [number, number][]; // [lat, lng] pairs
+}

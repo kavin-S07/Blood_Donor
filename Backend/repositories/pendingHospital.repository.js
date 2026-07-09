@@ -15,11 +15,14 @@ class PendingHospitalRepository {
                 license_number,
                 address,
                 phone,
+                latitude,
+                longitude,
+                formatted_address,
                 status
             )
             VALUES
             (
-                $1,$2,$3,$4,$5,$6,'pending'
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,'pending'
             )
             RETURNING *
         `;
@@ -30,7 +33,10 @@ class PendingHospitalRepository {
             data.password_hash,
             data.license_number,
             data.address,
-            data.phone
+            data.phone,
+            data.latitude ?? null,
+            data.longitude ?? null,
+            data.formatted_address ?? null,
         ];
 
         const result = await db.query(query, values);

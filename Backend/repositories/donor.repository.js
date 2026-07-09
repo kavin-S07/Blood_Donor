@@ -34,7 +34,8 @@ const findById = async (id) => {
 const findCompatibleDonors = async (compatibleGroups) => {
     const placeholders = compatibleGroups.map((_, i) => `$${i + 1}`).join(', ');
     const { rows } = await db.query(
-        `SELECT d.*, u.name, u.email, u.phone, u.city, u.state
+        `SELECT d.*, u.name, u.email, u.phone, u.city, u.state,
+                u.latitude, u.longitude, u.formatted_address
          FROM donors d JOIN users u ON d.user_id = u.id
          WHERE d.availability = true
            AND COALESCE(d.eligible_for_donation, true) = true

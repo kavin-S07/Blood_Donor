@@ -18,5 +18,12 @@ router.post('/request/:id/response/:responseId/donated',    ctrl.markDonated);
 router.post('/request/:id/response/:responseId/reject',     ctrl.rejectDonor);
 router.get('/history',                                      ctrl.getDonationHistory);
 router.get('/dashboard',                                    ctrl.getDashboard);
+router.get('/dashboard/enhanced',                           ctrl.getEnhancedDashboard);
+router.get('/analytics',                                    ctrl.getAnalytics);
+router.get('/requests/filter',                              ctrl.getFilteredRequests);
+router.get('/donors/filter',                                ctrl.getFilteredDonors);
+router.get('/notifications',                                ctrl.getNotificationLogs);
+router.post('/request/:id/notify-next',                     ctrl.notifyNextNearestDonor);
+router.get('/request/:id/nearest-donors',                   ctrl.getNearestDonors);
 
 module.exports = router;

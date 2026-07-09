@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { donorService } from '../services/donorService';
-import type { DonorDashboard } from '../types/donor';
+import type { DonorDashboard, BloodRequest } from '../types/donor';
 
 const StatCard: React.FC<{ label: string; value: string | number; sub?: string; accent?: boolean; icon?: string }> = ({
   label, value, sub, accent, icon,
@@ -21,16 +21,22 @@ const StatCard: React.FC<{ label: string; value: string | number; sub?: string; 
 
 const DonorDashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<DonorDashboard | null>(null);
+  const [activeRequest, setActiveRequest] = useState<BloodRequest | null>(null);
   const [available, setAvailable] = useState(true);
   const [togglingAvail, setTogglingAvail] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const data = await donorService.getDashboard();
+      const [data, activeReq] = await Promise.all([
+        donorService.getDashboard(),
+        donorService.getActiveRequest().catch(() => null),
+      ]);
       setDashboard(data);
       setAvailable(data.availability ?? true);
+      setActiveRequest(activeReq);
     } catch {} finally {
       setLoading(false);
     }
@@ -128,6 +134,30 @@ const DonorDashboardPage: React.FC = () => {
           icon={isEligible ? '✅' : '⏳'}
         />
       </div>
+
+      {/* Active Navigation */}
+      {activeRequest && activeRequest.hospital_latitude && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-5 flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">🧭</span>
+              <h3 className="text-blue-800 font-semibold">Active Navigation</h3>
+            </div>
+            <p className="text-blue-600 text-sm">
+              You accepted a request from <strong>{activeRequest.hospital_name}</strong>
+            </p>
+            <p className="text-blue-500 text-xs mt-1">
+              {activeRequest.blood_group} · {activeRequest.location}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/donor/navigation')}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm whitespace-nowrap"
+          >
+            View Route →
+          </button>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 gap-4 mb-8">

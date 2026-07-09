@@ -94,6 +94,22 @@ const getDonationHistory = async (userId) => {
     return donationRepo.findByDonorId(donor.id);
 };
 
+const getActiveRequest = async (userId) => {
+    const donor = await donorRepo.findByUserId(userId);
+    if (!donor) throw new Error('Donor profile not found');
+
+    const { rows } = await db.query(
+        `SELECT br.*, h.hospital_name, h.contact_number, h.hospital_address
+         FROM request_responses rr
+         JOIN blood_requests br ON rr.request_id = br.id
+         JOIN hospitals h ON br.hospital_id = h.id
+         WHERE rr.donor_id = $1 AND rr.status = 'accepted' AND br.status = 'accepted'
+         ORDER BY rr.response_date DESC LIMIT 1`,
+        [donor.id]
+    );
+    return rows[0] || null;
+};
+
 const getDashboard = async (userId) => {
     const donor = await donorRepo.findByUserId(userId);
     if (!donor) throw new Error('Donor profile not found');
@@ -125,4 +141,5 @@ const getDashboard = async (userId) => {
 module.exports = {
     getProfile, updateAvailability, getMatchingRequests,
     respondToRequest, getDonationHistory, getDashboard,
+    getActiveRequest,
 };
